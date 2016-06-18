@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import org.tbee.javafx.scene.layout.fxml.*?>
+<?import java.lang.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import org.tbee.javafx.scene.layout.fxml.MigPane?>
+<?import layouttests.migfxml.sample1.*?>
+
+<MigPane id="rootPane" fx:id="view" cols="[label, pref!][grow, 50::]" layout="insets 20" rows="" styleClass="main-panel" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/8" fx:controller="pl.itcity.cg.desktop.controller.LoginController">
+   <children>
+   
+       <Label text="%login.label.login" /> <TextField fx:id="loginField" prefColumnCount="30" MigPane.cc="growx, wrap" />
+       <Label text="%login.label.password" />	<PasswordField fx:id="passwordField" prefColumnCount="30" MigPane.cc="growx, wrap" />
+   
+       <Button onAction="#attemptLogin" text="%login.button.doLogin" MigPane.cc="skip, gap :push, gaptop 15, wrap" />
+   
+       <Label fx:id="messageLabel" styleClass="hello-message" MigPane.cc="span, growx, gaptop 15" />
+   </children>
+
+</MigPane>
