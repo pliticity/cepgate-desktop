@@ -55,4 +55,15 @@ public class Principal {
                 .append("password", password)
                 .toString();
     }
+
+    /**
+     * gets copy of given principal
+     *
+     * @param other
+     *         principal to copy
+     * @return copy of other
+     */
+    public static Principal copyOf(Principal other) {
+        return new Principal(other.getEmail(), other.getPassword());
+    }
 }

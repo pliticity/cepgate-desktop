@@ -19,6 +19,8 @@ import pl.itcity.cg.desktop.concurrent.LoginService;
 import pl.itcity.cg.desktop.controller.common.ParentNodeAware;
 import pl.itcity.cg.desktop.model.LoginResult;
 import pl.itcity.cg.desktop.model.Principal;
+import pl.itcity.cg.desktop.model.SessionContext;
+import pl.itcity.cg.desktop.user.UserContext;
 
 /**
  * login screen controller
@@ -42,6 +44,9 @@ public class LoginController implements ParentNodeAware {
     @Resource
     private LoginService loginService;
 
+    @Resource
+    private UserContext userContext;
+
     /**
      * performs login attempt
      */
@@ -63,11 +68,20 @@ public class LoginController implements ParentNodeAware {
                 LOGGER.warn("loginService allready running!");
             } else {
                 messageLabel.setText(StringUtils.EMPTY);
+                Principal principal = new Principal();
+                principal.setEmail(login);
+                principal.setPassword(password);
+                loginService.setPrincipal(principal);
                 loginService.setOnSucceeded(event -> {
                     LoginResult loginResult = loginService.getValue();
                     LOGGER.debug("login result obtained: "+loginResult);
-                    messageLabel.setText(messageSource.getMessage("login.succeeded",new Object[]{},Locale.getDefault()));
-                    //todo [michal.adamczyk] add some after login logic - save session token, go to documents view etc (in Platform.runLater)
+                    if (loginResult.getJsonResponse().isSuccess()){
+                        userContext.setAuthorized(true);
+                        userContext.setContext(new SessionContext(principal.getEmail(), loginResult.getCookie()));
+                        messageLabel.setText(messageSource.getMessage("login.succeeded",new Object[]{},Locale.getDefault()));
+                    } else {
+                        messageLabel.setText(messageSource.getMessage("login.failure",new Object[]{loginResult.getJsonResponse().getMessage()},Locale.getDefault()));
+                    }
                 });
                 loginService.setOnFailed(event -> {
                     Throwable exception = loginService.getException();
