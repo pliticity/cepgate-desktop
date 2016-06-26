@@ -15,6 +15,7 @@ import javafx.fxml.FXML;
 import javafx.scene.Parent;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import pl.itcity.cg.desktop.CgApplication;
 import pl.itcity.cg.desktop.concurrent.LoginService;
 import pl.itcity.cg.desktop.controller.common.ParentNodeAware;
 import pl.itcity.cg.desktop.model.LoginResult;
@@ -79,6 +80,7 @@ public class LoginController implements ParentNodeAware {
                         userContext.setAuthorized(true);
                         userContext.setContext(new SessionContext(principal.getEmail(), loginResult.getCookie()));
                         messageLabel.setText(messageSource.getMessage("login.succeeded",new Object[]{},Locale.getDefault()));
+                        CgApplication.getInstance().goToDocumentList();
                     } else {
                         messageLabel.setText(messageSource.getMessage("login.failure",new Object[]{loginResult.getJsonResponse().getMessage()},Locale.getDefault()));
                     }

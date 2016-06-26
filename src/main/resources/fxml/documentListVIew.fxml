@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<TabPane fx:id="documentListView" styleClass="main-panel" stylesheets="@../styles/styles.css" tabClosingPolicy="UNAVAILABLE" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="pl.itcity.cg.desktop.controller.DocumentListController">
+  <tabs>
+    <Tab fx:id="documentListTab" closable="false" text="%document.list.tab">
+      <content>
+        <VBox maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308">
+          <children>
+            <ToolBar prefHeight="40.0">
+              <items>
+                <Button fx:id="refreshButton" mnemonicParsing="false" onAction="#fetchDocuments" text="%document.list.button.refresh" />
+              </items>
+            </ToolBar>
+            <TableView fx:id="documentList" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" VBox.vgrow="ALWAYS">
+              <columns>
+                <TableColumn fx:id="classificationIdColumn" editable="false" prefWidth="75.0" text="%document.list.classification.column" />
+                <TableColumn fx:id="classificationNameColumn" editable="false" prefWidth="75.0" text="%document.list.classification.name.column" />
+                <TableColumn fx:id="documentNumberColumn" editable="false" prefWidth="75.0" text="%document.list.document.number.column" />
+                <TableColumn fx:id="documentTypeColumn" editable="false" prefWidth="75.0" text="%document.list.document.type.column" />
+                <TableColumn fx:id="documentNameColumn" editable="false" prefWidth="75.0" text="%document.list.document.name.column" />
+                <TableColumn fx:id="creationDateColumn" editable="false" prefWidth="75.0" text="%document.list.creation.date.column" />
+                <TableColumn fx:id="createdByColumn" editable="false" prefWidth="75.0" text="%document.list.created.by.column" />
+                <TableColumn fx:id="filesCountColumn" editable="false" prefWidth="75.0" text="%document.list.files.count.column" />
+                <TableColumn fx:id="selectedFilesColumn" editable="false" prefWidth="75.0" text="%document.list.selected.files.column" />
+              </columns>
+            </TableView>
+          </children>
+        </VBox>
+      </content>
+    </Tab>
+    <Tab closable="false" text="Untitled Tab 2">
+      <content>
+        <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0" />
+      </content>
+    </Tab>
+  </tabs>
+</TabPane>

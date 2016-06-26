@@ -15,6 +15,7 @@ import javafx.collections.ObservableList;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import pl.itcity.cg.desktop.controller.DocumentListController;
 import pl.itcity.cg.desktop.controller.LoginController;
 import pl.itcity.cg.desktop.controller.common.ParentNodeAware;
 
@@ -28,7 +29,17 @@ public class CgApplication extends Application {
     private ConfigurableApplicationContext context;
     private Stage mainStage;
 
+    private static CgApplication instance;
+
     BooleanProperty ready = new SimpleBooleanProperty(false);
+
+    public CgApplication() {
+        instance = this;
+    }
+
+    public static CgApplication getInstance(){
+        return instance;
+    }
 
     public static void main(String[] args) throws Exception {
         launch(args);
@@ -51,6 +62,15 @@ public class CgApplication extends Application {
         LoginController loginController = context.getBean(LoginController.class);
         gotoControllerView(loginController, true);
         mainStage.show();
+    }
+
+    /**
+     * navigates to document list view
+     */
+    public void goToDocumentList() {
+        DocumentListController documentListController = context.getBean(DocumentListController.class);
+        gotoControllerView(documentListController, false);
+        documentListController.fetchDocuments();
     }
 
     private void gotoControllerView(ParentNodeAware controller, boolean forceDefaultSize) {
