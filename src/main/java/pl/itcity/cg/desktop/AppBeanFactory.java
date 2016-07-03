@@ -23,6 +23,7 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
 import org.springframework.web.client.RestTemplate;
 
 import javafx.fxml.FXMLLoader;
+import pl.itcity.cg.desktop.controller.ConfigController;
 import pl.itcity.cg.desktop.controller.DocumentListController;
 import pl.itcity.cg.desktop.controller.LoginController;
 
@@ -53,6 +54,11 @@ public class AppBeanFactory {
     @Bean
     public DocumentListController documentListController() throws IOException {
         return (DocumentListController) loadController("/fxml/documentListVIew.fxml");
+    }
+
+    @Bean
+    public ConfigController configController() throws IOException {
+        return (ConfigController) loadController("/fxml/config.fxml");
     }
 
     private Object loadController(String url) throws IOException {

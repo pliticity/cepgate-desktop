@@ -9,12 +9,11 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import pl.itcity.cg.desktop.controller.ConfigController;
 import pl.itcity.cg.desktop.controller.DocumentListController;
 import pl.itcity.cg.desktop.controller.LoginController;
 import pl.itcity.cg.desktop.controller.common.ParentNodeAware;
@@ -47,7 +46,7 @@ public class CgApplication extends Application {
 
     public void start(final Stage stage) throws Exception {
 
-        LOGGER.info("Starting Hello JavaFX and Maven demonstration application");
+        LOGGER.info("Starting CepGate JavaFX application");
         context = new AnnotationConfigApplicationContext(AppBeanFactory.class);
         ready.addListener((ov, t, t1) -> {
             if (Boolean.TRUE.equals(t1)) {
@@ -73,6 +72,15 @@ public class CgApplication extends Application {
         documentListController.fetchDocuments();
     }
 
+    /**
+     * navigates to config view
+     */
+    public void goToConfig(){
+        ConfigController configController = context.getBean(ConfigController.class);
+        gotoControllerView(configController,false);
+        configController.fetchConfig();
+    }
+
     private void gotoControllerView(ParentNodeAware controller, boolean forceDefaultSize) {
         Parent rootNode = controller.getView();
         replaceSceeneContent(rootNode, forceDefaultSize);
@@ -92,5 +100,9 @@ public class CgApplication extends Application {
         } else {
             scene.setRoot(rootNode);
         }
+    }
+
+    public Stage getMainStage() {
+        return mainStage;
     }
 }

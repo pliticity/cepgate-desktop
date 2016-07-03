@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox fx:id="configView" styleClass="main-panel" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="pl.itcity.cg.desktop.controller.ConfigController">
+   <children>
+      <HBox alignment="TOP_CENTER">
+         <children>
+            <Label text="%configuration.description" />
+         </children>
+      </HBox>
+      <HBox alignment="CENTER" prefHeight="100.0">
+         <children>
+            <Label prefWidth="220.0" text="%configuration.directory.label" />
+            <TextField fx:id="syncDirectory" prefWidth="220.0" />
+            <Button fx:id="browseSyncDirButton" mnemonicParsing="false" text="%button.browse" />
+         </children>
+      </HBox>
+      <HBox VBox.vgrow="ALWAYS">
+         <children>
+            <Label fx:id="errorLabel" alignment="TOP_LEFT" />
+         </children>
+      </HBox>
+      <HBox alignment="CENTER_RIGHT">
+         <children>
+            <Button fx:id="saveButton" mnemonicParsing="false" text="%button.save" />
+         </children>
+         <VBox.margin>
+            <Insets bottom="5.0" right="5.0" />
+         </VBox.margin>
+      </HBox>
+   </children>
+</VBox>

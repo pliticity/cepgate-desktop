@@ -80,7 +80,7 @@ public class LoginController implements ParentNodeAware {
                         userContext.setAuthorized(true);
                         userContext.setContext(new SessionContext(principal.getEmail(), loginResult.getCookie()));
                         messageLabel.setText(messageSource.getMessage("login.succeeded",new Object[]{},Locale.getDefault()));
-                        CgApplication.getInstance().goToDocumentList();
+                        CgApplication.getInstance().goToConfig();
                     } else {
                         messageLabel.setText(messageSource.getMessage("login.failure",new Object[]{loginResult.getJsonResponse().getMessage()},Locale.getDefault()));
                     }

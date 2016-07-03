@@ -3,7 +3,6 @@ package pl.itcity.cg.desktop.controller;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -13,18 +12,13 @@ import javax.annotation.Resource;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.MessageSource;
 
-import javafx.beans.binding.Binding;
-import javafx.beans.binding.Bindings;
 import javafx.beans.property.ReadOnlyObjectWrapper;
-import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
-import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -43,14 +37,11 @@ import pl.itcity.cg.desktop.model.Principal;
  *
  * @author Michal Adamczyk
  */
-public class DocumentListController implements ParentNodeAware {
+public class DocumentListController extends BaseController implements ParentNodeAware {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DocumentListController.class);
     private static final String DD_MM_YYYY = "dd/MM/yyyy";
     private static final double LIST_CELL_HEIGHT = 30d;
-
-    @Resource
-    private MessageSource messageSource;
 
     @Resource
     private DocumentListService documentListService;
@@ -227,14 +218,6 @@ public class DocumentListController implements ParentNodeAware {
             });
             documentListService.restart();
         }
-    }
-
-    private String getMessage(String code) {
-        return messageSource.getMessage(code, new Object[]{}, code, Locale.getDefault());
-    }
-
-    private String getMessage(String code,Object[] params){
-        return messageSource.getMessage(code,params,code,Locale.getDefault());
     }
 
 }
