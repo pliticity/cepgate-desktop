@@ -10,6 +10,7 @@ import org.apache.commons.lang.builder.ToStringBuilder;
 public class FileInfo {
     private String id;
     private String name;
+    private String symbol;
 
     public String getId() {
         return id;
@@ -27,6 +28,14 @@ public class FileInfo {
         this.name = name;
     }
 
+    public String getSymbol() {
+        return symbol;
+    }
+
+    public void setSymbol(String symbol) {
+        this.symbol = symbol;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -36,7 +45,7 @@ public class FileInfo {
             return false;
         }
         FileInfo fileInfo = (FileInfo) o;
-        return Objects.equals(id, fileInfo.id) && Objects.equals(name, fileInfo.name);
+        return Objects.equals(id, fileInfo.id) && Objects.equals(name, fileInfo.name) && Objects.equals(symbol, fileInfo.symbol);
     }
 
     @Override
@@ -48,6 +57,7 @@ public class FileInfo {
     public String toString() {
         return new ToStringBuilder(this).append("id", id)
                 .append("name", name)
+                .append("symbol",symbol)
                 .toString();
     }
 }

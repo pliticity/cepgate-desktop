@@ -2,6 +2,7 @@ package pl.itcity.cg.desktop.controller;
 
 import java.io.File;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Optional;
 
 import javax.annotation.PostConstruct;
@@ -15,13 +16,17 @@ import javafx.fxml.FXML;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextField;
 import javafx.stage.DirectoryChooser;
 import pl.itcity.cg.desktop.CgApplication;
+import pl.itcity.cg.desktop.concurrent.DocumentListService;
+import pl.itcity.cg.desktop.concurrent.DocumentSynchronizingService;
 import pl.itcity.cg.desktop.concurrent.GetConfigurationService;
 import pl.itcity.cg.desktop.concurrent.StoreConfigurationService;
 import pl.itcity.cg.desktop.configuration.model.AppConfig;
 import pl.itcity.cg.desktop.controller.common.ParentNodeAware;
+import pl.itcity.cg.desktop.model.DocumentInfo;
 
 /**
  * @author Michal Adamczyk controller for configuration screen
@@ -45,8 +50,17 @@ public class ConfigController extends BaseController implements ParentNodeAware{
     @FXML
     private Label errorLabel;
 
+    @FXML
+    private ProgressBar synchronizationProgressBar;
+
     @Resource
     private StoreConfigurationService storeConfigurationService;
+
+    @Resource
+    private DocumentSynchronizingService documentSynchronizingService;
+
+    @Resource
+    private DocumentListService documentListService;
 
     @Resource
     private GetConfigurationService getConfigurationService;
@@ -85,6 +99,8 @@ public class ConfigController extends BaseController implements ParentNodeAware{
                 LOGGER.debug("storeConfigurationService already running");
             }
         });
+        synchronizationProgressBar.setVisible(false);
+        synchronizationProgressBar.progressProperty().bind(documentSynchronizingService.progressProperty());
     }
 
     /**
@@ -133,8 +149,9 @@ public class ConfigController extends BaseController implements ParentNodeAware{
         storeConfigurationService.setAppConfig(appConfig);
         storeConfigurationService.setOnSucceeded(event1 -> {
             errorLabel.setText(getMessage("config.sava.success"));
-            CgApplication.getInstance()
-                    .goToDocumentList();
+            /*CgApplication.getInstance()
+                    .goToDocumentList();*/
+            fetchDocumentsAndSynchronize();
         });
         storeConfigurationService.setOnFailed(event1 -> {
             Throwable exception = storeConfigurationService.getException();
@@ -142,6 +159,36 @@ public class ConfigController extends BaseController implements ParentNodeAware{
             errorLabel.setText(getMessage("config.error.serviceException", new Object[]{exception.getMessage()}));
         });
         storeConfigurationService.restart();
+    }
+
+    private void fetchDocumentsAndSynchronize() {
+        if (documentListService.isRunning()){
+            LOGGER.warn("documentListService already running");
+        } else {
+            documentListService.setOnFailed(event -> {
+                Throwable exception = documentListService.getException();
+                LOGGER.error("exception while feching documents:",exception);
+                errorLabel.setText(getMessage("document.list.error", new Object[]{exception.getMessage()}));
+            });
+            documentListService.setOnSucceeded(event -> {
+                errorLabel.setText(getMessage("document.list.succes.starting.sync"));
+                List<DocumentInfo> value = documentListService.getValue();
+                if (documentSynchronizingService.isRunning()){
+                    LOGGER.warn("DocumentSynchronizingService already running");
+                } else {
+                    documentSynchronizingService.setOnFailed(event1 -> {
+                        Throwable exception = documentSynchronizingService.getException();
+                        LOGGER.error("exception while synchronizing documents:", exception);
+                        errorLabel.setText(getMessage("document.synchronization.error",new Object[]{exception.getMessage()}));
+                    });
+                    documentSynchronizingService.setOnSucceeded(event1 -> errorLabel.setText(getMessage("document.synchronization.success")));
+                    documentSynchronizingService.setDocuments(value);
+                    documentSynchronizingService.restart();
+                    synchronizationProgressBar.setVisible(true);
+                }
+            });
+            documentListService.restart();
+        }
     }
 
     /**
