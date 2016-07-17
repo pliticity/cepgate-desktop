@@ -14,6 +14,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +35,7 @@ public class SynchronizingTempResourceFileVisitor implements FileVisitor<Path>{
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SynchronizingTempResourceFileVisitor.class);
     private static final String MD5 = "MD5";
+    private static final String UNDERSCORE = "_";
 
     private final Path destinationDirectory;
     private final SingleFileDocumentInfo singleFileDocumentInfo;
@@ -73,9 +75,30 @@ public class SynchronizingTempResourceFileVisitor implements FileVisitor<Path>{
         Path fileName = file.getFileName();
         Path destinationFilePath = destinationDirectory.resolve(fileName);
         FileMeta fileMeta = createFileMeta(file, destinationFilePath);
+        visitFileWithMeta(file, fileName, destinationFilePath, fileMeta, 1);
+        return FileVisitResult.CONTINUE;
+    }
+
+    /**
+     * visits single file with file metadata
+     *
+     * @param file
+     *         file
+     * @param fileName
+     *         file name
+     * @param destinationFilePath
+     *         destination file path
+     * @param fileMeta
+     *         file meta for file
+     * @param attemptNumber
+     *         attempt number
+     * @throws IOException
+     */
+    private void visitFileWithMeta(Path file, Path fileName, Path destinationFilePath, FileMeta fileMeta, int attemptNumber) throws
+                                                                                                                             IOException {
         File metaFile = destinationDirectory.resolve(fileName + ".meta")
                 .toFile();
-        if (!metaFile.exists()){
+        if (!metaFile.exists()) {
             LOGGER.info("moving file " + fileName + " to destination directory " + destinationDirectory);
             metaFile.createNewFile();
             moveFileAndWriteMeta(file, destinationFilePath, fileMeta, metaFile);
@@ -84,8 +107,13 @@ public class SynchronizingTempResourceFileVisitor implements FileVisitor<Path>{
             ObjectMapper objectMapper = new ObjectMapper();
             try {
                 FileMeta existingFileMeta = objectMapper.readValue(metaFile, FileMeta.class);
-                if (fileMeta.getFileinfoId().equals(existingFileMeta.getFileinfoId())){
+                if (fileMeta.getFileinfoId()
+                        .equals(existingFileMeta.getFileinfoId())) {
                     handleFileDuplicate(file, destinationFilePath, fileMeta, metaFile, existingFileMeta);
+                } else {
+                    LOGGER.warn("metadata with other fileInfoId = " + existingFileMeta.getFileinfoId() + " exists!! About to change file name ");
+                    String changedFileName = calculateFileNameForNextAttempt(fileName, fileMeta, attemptNumber);
+                    visitFileWithMeta(file, Paths.get(changedFileName), destinationDirectory.resolve(changedFileName), fileMeta, attemptNumber + 1);
                 }
             } catch (IOException e) {
                 LOGGER.error("unable to read old meta file:", e);
@@ -93,7 +121,32 @@ public class SynchronizingTempResourceFileVisitor implements FileVisitor<Path>{
                 moveFileAndWriteMeta(file, destinationFilePath, fileMeta, metaFile);
             }
         }
-        return FileVisitResult.CONTINUE;
+    }
+
+    /**
+     * calculates file name for the next attempt. The result contains of original name without extension, attempt number part and original file extension.
+     * Updates file name stored in file meta
+     *
+     * @param fileName
+     *         file name
+     * @param fileMeta
+     *         file meta
+     * @param attemptNumber
+     *         attempt number
+     * @return fiel name for the next attempt
+     */
+    private String calculateFileNameForNextAttempt(Path fileName, FileMeta fileMeta, int attemptNumber) {
+        String filenameStr = fileName.toString();
+        String baseFileName = FilenameUtils.removeExtension(filenameStr);
+        String extension = FilenameUtils.getExtension(filenameStr);
+        int previousAttemptNumber = attemptNumber - 1;
+        String previousAttemptNumberPart = UNDERSCORE + previousAttemptNumber + UNDERSCORE;
+        if (baseFileName.contains(previousAttemptNumberPart)) {
+            baseFileName = baseFileName.substring(0, baseFileName.lastIndexOf(previousAttemptNumberPart));
+        }
+        String changedFileName = baseFileName + UNDERSCORE + attemptNumber + UNDERSCORE +"."+ extension;
+        fileMeta.setFileName(changedFileName);
+        return changedFileName;
     }
 
     /**

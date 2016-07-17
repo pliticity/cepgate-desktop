@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -15,6 +16,8 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Resource;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
@@ -82,24 +85,47 @@ public class DocumentSynchronizingService extends BaseRestService<Void>{
                                 .map(fileInfo -> new SingleFileDocumentInfo(documentInfo, fileInfo)))
                         .flatMap(Function.identity())
                         .forEach(singleFileDocInfo -> {
-                            String[] fileIds = {singleFileDocInfo.getFileInfo().getId()};
-                            HttpEntity<String[]> httpEntity = new HttpEntity<>(fileIds, getAuthHeaders());
-                            ResponseEntity<FileInfo> resultFileInfoResponse = restTemplate.exchange(baseUrl + "files", HttpMethod.POST, httpEntity, FileInfo.class);
-                            if (HttpStatus.OK.equals(resultFileInfoResponse.getStatusCode())){
-                                FileInfo resultFileInfo = resultFileInfoResponse.getBody();
-                                ResponseEntity<byte[]> downloadedFileResponse = callDownloadSingleFile(resultFileInfo);
-                                if (HttpStatus.OK.equals(downloadedFileResponse.getStatusCode())) {
-                                    try {
-                                        synchronizeSingleFileContent(syncDirectory, singleFileDocInfo, downloadedFileResponse);
-                                        progress = progress + 1;
-                                        updateProgress(progress, filesCount);
-                                    } catch (IOException e) {
-                                        LOGGER.error("unable to process files", e);
-                                    }
+                            if (StringUtils.isBlank(singleFileDocInfo.getFileInfo()
+                                                            .getSymbol())) {
+                                String[] fileIds = {singleFileDocInfo.getFileInfo().getId()};
+                                HttpEntity<String[]> httpEntity = new HttpEntity<>(fileIds, getAuthHeaders());
+                                ResponseEntity<FileInfo> resultFileInfoResponse = restTemplate.exchange(baseUrl + "files", HttpMethod.POST, httpEntity, FileInfo.class);
+                                if (HttpStatus.OK.equals(resultFileInfoResponse.getStatusCode())) {
+                                    FileInfo resultFileInfo = resultFileInfoResponse.getBody();
+                                    processSingleFileDownload(filesCount, syncDirectory, singleFileDocInfo, resultFileInfo, true);
                                 }
+                            } else {
+                                processSingleFileDownload(filesCount, syncDirectory, singleFileDocInfo, singleFileDocInfo.getFileInfo(), false);
                             }
                         });
                 return null;
+            }
+
+            /**
+             * performs single file download. Calls file download request and synchronizes result
+             *
+             * @param filesCount
+             *         files count
+             * @param syncDirectory
+             *         sunchronize directory
+             * @param singleFileDocInfo
+             *         single file document info
+             * @param resultFileInfo
+             *         result file info
+             * @param unzip
+             *         should result be unzipped flag
+             */
+            private void processSingleFileDownload(long filesCount, String syncDirectory, SingleFileDocumentInfo singleFileDocInfo, FileInfo resultFileInfo, boolean unzip) {
+                ResponseEntity<byte[]> downloadedFileResponse = callDownloadSingleFile(resultFileInfo, false);
+                if (HttpStatus.OK.equals(downloadedFileResponse.getStatusCode())) {
+                    try {
+                        synchronizeSingleFileContent(syncDirectory, singleFileDocInfo, downloadedFileResponse, unzip);
+                        progress = progress + 1;
+                        updateProgress(progress, filesCount);
+                    } catch (IOException e) {
+                        LOGGER.error("unable to process files", e);
+                    }
+                }
             }
 
             /**
@@ -111,16 +137,62 @@ public class DocumentSynchronizingService extends BaseRestService<Void>{
              *         single file and document info object
              * @param downloadedFileResponse
              *         downloaded file response
+             * @param unzip
+             *         should output be unzipped
              * @throws IOException
              */
-            private void synchronizeSingleFileContent(String syncDirectory, SingleFileDocumentInfo singleFileDocInfo, ResponseEntity<byte[]> downloadedFileResponse) throws
+            private void synchronizeSingleFileContent(String syncDirectory, SingleFileDocumentInfo singleFileDocInfo, ResponseEntity<byte[]> downloadedFileResponse, boolean unzip) throws
                                                                                                                                                                      IOException {
                 Path tempDirectory = Files.createTempDirectory(UUID.randomUUID()
                                                                        .toString());
-                InputStream byteArrayInputStream = new ByteArrayInputStream(downloadedFileResponse.getBody());
-                ZipUtil.unpack(byteArrayInputStream, tempDirectory.toFile());
+                if (unzip) {
+                    InputStream byteArrayInputStream = new ByteArrayInputStream(downloadedFileResponse.getBody());
+                    ZipUtil.unpack(byteArrayInputStream, tempDirectory.toFile());
+                } else {
+                    String destinationFileName = readFilenameFromResponseHeaders(singleFileDocInfo, downloadedFileResponse);
+                    Path resolve = tempDirectory.resolve(destinationFileName);
+                    LOGGER.info("writing response bytes to file: " + resolve);
+                    Files.write(resolve, downloadedFileResponse.getBody());
+                }
                 Files.walkFileTree(tempDirectory, new SynchronizingTempResourceFileVisitor(singleFileDocInfo, syncDirectory));
-                Files.delete(tempDirectory);
+                FileUtils.deleteDirectory(tempDirectory.toFile());
+            }
+
+            /**
+             * reads file name from response headers. Returns name from fileInfo if not found
+             *
+             * @param singleFileDocInfo
+             *         single document file info
+             * @param downloadedFileResponse
+             *         downloader file response
+             * @return file name from header or from fileinfo if not found
+             */
+            private String readFilenameFromResponseHeaders(SingleFileDocumentInfo singleFileDocInfo, ResponseEntity<byte[]> downloadedFileResponse) {
+                return Optional.ofNullable(downloadedFileResponse.getHeaders()
+                                                   .get("Content-Disposition"))
+                        .orElse(Collections.emptyList())
+                        .stream()
+                        .findFirst()
+                        .map(filenameHeader -> {
+                            Optional<String> filename = Arrays.stream(filenameHeader.split(";"))
+                                    .filter(s -> s.contains("filename"))
+                                    .findFirst();
+                            return filename.map(filenameHeaderValue -> {
+                                LOGGER.debug("filename header obtained: " + filenameHeader);
+                                String[] splittedFilenameheader = filenameHeaderValue.split("=");
+                                if (splittedFilenameheader.length == 2) {
+                                    return splittedFilenameheader[1];
+                                } else {
+                                    LOGGER.warn("no filenme found in response header, returning name from fileInfo");
+                                    return singleFileDocInfo.getFileInfo()
+                                            .getName();
+                                }
+                            })
+                                    .orElse(singleFileDocInfo.getFileInfo()
+                                                    .getName());
+                        })
+                        .orElse(singleFileDocInfo.getFileInfo()
+                                        .getName());
             }
 
             /**
@@ -128,13 +200,15 @@ public class DocumentSynchronizingService extends BaseRestService<Void>{
              *
              * @param resultFileInfo
              *         file info for file to download
+             * @param isTemp is temporary file flag
              * @return downloaded file response entity
              */
-            private ResponseEntity<byte[]> callDownloadSingleFile(FileInfo resultFileInfo) {
+            private ResponseEntity<byte[]> callDownloadSingleFile(FileInfo resultFileInfo, boolean isTemp) {
                 HttpHeaders headers = getAuthHeaders();
                 headers.setAccept(Collections.singletonList(MediaType.APPLICATION_OCTET_STREAM));
                 HttpEntity<byte[]> downloadFileEnity = new HttpEntity<>(headers);
-                return restTemplate.exchange(baseUrl + "file/" + resultFileInfo.getSymbol() + "?temp=true", HttpMethod.GET, downloadFileEnity, byte[].class);
+                String tempAttributeValue = isTemp ? "?temp=true" : StringUtils.EMPTY;
+                return restTemplate.exchange(baseUrl + "file/" + resultFileInfo.getSymbol() + tempAttributeValue, HttpMethod.GET, downloadFileEnity, byte[].class);
             }
         };
     }
