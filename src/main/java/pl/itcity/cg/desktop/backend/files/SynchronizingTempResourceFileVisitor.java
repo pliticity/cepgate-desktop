@@ -1,7 +1,6 @@
 package pl.itcity.cg.desktop.backend.files;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.FileVisitor;
@@ -10,8 +9,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 
 import org.apache.commons.io.FilenameUtils;
@@ -34,7 +31,6 @@ import pl.itcity.cg.desktop.model.SingleFileDocumentInfo;
 public class SynchronizingTempResourceFileVisitor implements FileVisitor<Path>{
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SynchronizingTempResourceFileVisitor.class);
-    private static final String MD5 = "MD5";
     private static final String UNDERSCORE = "_";
 
     private final Path destinationDirectory;
@@ -96,7 +92,7 @@ public class SynchronizingTempResourceFileVisitor implements FileVisitor<Path>{
      */
     private void visitFileWithMeta(Path file, Path fileName, Path destinationFilePath, FileMeta fileMeta, int attemptNumber) throws
                                                                                                                              IOException {
-        File metaFile = destinationDirectory.resolve(fileName + ".meta")
+        File metaFile = destinationDirectory.resolve(fileName + FileConstants.META)
                 .toFile();
         if (!metaFile.exists()) {
             LOGGER.info("moving file " + fileName + " to destination directory " + destinationDirectory);
@@ -213,9 +209,9 @@ public class SynchronizingTempResourceFileVisitor implements FileVisitor<Path>{
      */
     private void prepareBackup(FileMeta existingFileMeta, Path existingFilePath) throws IOException {
         LOGGER.info("about to create backup file");
-        String backupFilePath = existingFilePath.toString() + ".bak";
+        String backupFilePath = existingFilePath.toString() + FileConstants.BAK;
         existingFileMeta.setFileName(backupFilePath);
-        File destinationMetaFile = Paths.get(backupFilePath + ".meta")
+        File destinationMetaFile = Paths.get(backupFilePath + FileConstants.META)
                 .toFile();
         if (!destinationMetaFile.exists()) {
             destinationMetaFile.createNewFile();
@@ -255,60 +251,21 @@ public class SynchronizingTempResourceFileVisitor implements FileVisitor<Path>{
      * @throws IOException
      */
     private FileMeta createFileMeta(Path file, Path destinationFilePath) throws IOException {
-        byte[] checksum = calculateChecksum(file, MD5);
-        Checksum md5 = Checksum.valueOf(MD5, checksum, new Date());
+        byte[] checksum = ChecksumUtil.calculateChecksum(file, ChecksumUtil.MD5);
+        Checksum md5 = Checksum.valueOf(ChecksumUtil.MD5, checksum, new Date());
         FileMeta fileMeta = new FileMeta();
         fileMeta.setChecksum(md5);
         fileMeta.setFileinfoId(singleFileDocumentInfo.getFileInfo()
                                        .getId());
+        fileMeta.setDocumentInfoId(singleFileDocumentInfo.getDocumentInfo().getId());
         fileMeta.setFileName(destinationFilePath.toString());
+        String symbol = singleFileDocumentInfo.getFileInfo()
+                .getSymbol();
+        if (StringUtils.isNotBlank(symbol)) {
+            fileMeta.setSymbol(symbol);
+        }
         fileMeta.setCreatedDate(new Date());
         return fileMeta;
-    }
-
-    /**
-     * calculates hash of given file with given algorythm.
-     *
-     * @param file
-     *         path to file
-     * @param algorythm
-     *         algorythm
-     * @return calculated checksum or empty byte array if checksum algorythm is not supported
-     * @throws IOException
-     */
-    private byte[] calculateChecksum(Path file, String algorythm) throws IOException {
-        byte[] checksum = new byte[0];
-        try {
-            MessageDigest digest = MessageDigest.getInstance(algorythm);
-            try (FileInputStream fileInputStream = new FileInputStream(file.toFile())) {
-                readBytesAndUpdateDigest(digest, fileInputStream);
-            }
-            return digest.digest();
-
-        } catch (NoSuchAlgorithmException e) {
-            LOGGER.error("unable to calculate checksum", e);
-        }
-        return checksum;
-    }
-
-    /**
-     * reads bytes of fileInputStream and updates digest
-     *
-     * @param digest
-     *         digest
-     * @param fileInputStream
-     *         input stream
-     * @throws IOException
-     */
-    private void readBytesAndUpdateDigest(MessageDigest digest, FileInputStream fileInputStream) throws IOException {
-        byte[] buffer = new byte[1024];
-        int numRead;
-        do {
-            numRead = fileInputStream.read(buffer);
-            if (numRead > 0) {
-                digest.update(buffer, 0, numRead);
-            }
-        } while (numRead != -1);
     }
 
     @Override

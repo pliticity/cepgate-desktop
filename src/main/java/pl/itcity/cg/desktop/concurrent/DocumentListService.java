@@ -1,7 +1,6 @@
 package pl.itcity.cg.desktop.concurrent;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 
 import org.springframework.context.annotation.Scope;
@@ -26,8 +25,8 @@ public class DocumentListService extends BaseRestService<List<DocumentInfo>>{
         return new Task<List<DocumentInfo>>() {
             @Override
             protected List<DocumentInfo> call() throws Exception {
-                HttpEntity<Void> httpEntity = new HttpEntity<>(null, getAuthHeaders());
-                ResponseEntity<DocumentInfo[]> getDocumentsResult = restTemplate.exchange(baseUrl + "document/query?my=true", HttpMethod.GET, httpEntity, DocumentInfo[].class);
+                HttpEntity<Void> httpEntity = new HttpEntity<>(null, serviceInvoker.getAuthHeaders());
+                ResponseEntity<DocumentInfo[]> getDocumentsResult = serviceInvoker.exchange("document/query?my=true", HttpMethod.GET, httpEntity, DocumentInfo[].class);
                 return Arrays.asList(getDocumentsResult.getBody());
             }
         };

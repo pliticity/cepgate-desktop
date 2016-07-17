@@ -88,8 +88,8 @@ public class DocumentSynchronizingService extends BaseRestService<Void>{
                             if (StringUtils.isBlank(singleFileDocInfo.getFileInfo()
                                                             .getSymbol())) {
                                 String[] fileIds = {singleFileDocInfo.getFileInfo().getId()};
-                                HttpEntity<String[]> httpEntity = new HttpEntity<>(fileIds, getAuthHeaders());
-                                ResponseEntity<FileInfo> resultFileInfoResponse = restTemplate.exchange(baseUrl + "files", HttpMethod.POST, httpEntity, FileInfo.class);
+                                HttpEntity<String[]> httpEntity = new HttpEntity<>(fileIds, serviceInvoker.getAuthHeaders());
+                                ResponseEntity<FileInfo> resultFileInfoResponse = serviceInvoker.exchange("files", HttpMethod.POST, httpEntity, FileInfo.class);
                                 if (HttpStatus.OK.equals(resultFileInfoResponse.getStatusCode())) {
                                     FileInfo resultFileInfo = resultFileInfoResponse.getBody();
                                     processSingleFileDownload(filesCount, syncDirectory, singleFileDocInfo, resultFileInfo, true);
@@ -204,11 +204,11 @@ public class DocumentSynchronizingService extends BaseRestService<Void>{
              * @return downloaded file response entity
              */
             private ResponseEntity<byte[]> callDownloadSingleFile(FileInfo resultFileInfo, boolean isTemp) {
-                HttpHeaders headers = getAuthHeaders();
+                HttpHeaders headers = serviceInvoker.getAuthHeaders();
                 headers.setAccept(Collections.singletonList(MediaType.APPLICATION_OCTET_STREAM));
                 HttpEntity<byte[]> downloadFileEnity = new HttpEntity<>(headers);
                 String tempAttributeValue = isTemp ? "?temp=true" : StringUtils.EMPTY;
-                return restTemplate.exchange(baseUrl + "file/" + resultFileInfo.getSymbol() + tempAttributeValue, HttpMethod.GET, downloadFileEnity, byte[].class);
+                return serviceInvoker.exchange("file/" + resultFileInfo.getSymbol() + tempAttributeValue, HttpMethod.GET, downloadFileEnity, byte[].class);
             }
         };
     }

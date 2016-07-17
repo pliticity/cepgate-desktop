@@ -1,5 +1,9 @@
 package pl.itcity.cg.desktop;
 
+import java.awt.*;
+import java.awt.event.ActionListener;
+import java.io.IOException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -27,6 +31,12 @@ public class CgApplication extends Application {
 
     private ConfigurableApplicationContext context;
     private Stage mainStage;
+
+    private boolean firstTime;
+    /**
+     * AWT tray icon
+     */
+    private TrayIcon trayIcon;
 
     private static CgApplication instance;
 
@@ -58,9 +68,92 @@ public class CgApplication extends Application {
         mainStage = stage;
         mainStage.setMinWidth(DEFAULT_APPLICATION_WIDTH);
         mainStage.setMinHeight(DEFAULT_APPLICATION_HEIGHT);
+        createTrayIcon();
+        firstTime = true;
+        Platform.setImplicitExit(false);
         LoginController loginController = context.getBean(LoginController.class);
         gotoControllerView(loginController, true);
         mainStage.show();
+    }
+
+    /**
+     * creates tray icon
+     */
+    public void createTrayIcon(){
+        if (SystemTray.isSupported()){
+            LOGGER.info("system tray supported, initializing system tray");
+            SystemTray systemTray = SystemTray.getSystemTray();
+            mainStage.setOnCloseRequest(t -> hide());
+
+            ActionListener showListener = e -> Platform.runLater(mainStage::show);
+
+            // load an image
+            java.awt.Image image = null;
+            try {
+                image = javax.imageio.ImageIO.read(this.getClass().getResourceAsStream("/images/cuberix-logo.png"));
+            } catch (IOException ex) {
+                LOGGER.error("unable to load tray image", ex);
+            }
+            // create a popup menu
+            PopupMenu popup = new PopupMenu();
+
+            MenuItem showItem = new MenuItem("Show");
+            showItem.addActionListener(showListener);
+            popup.add(showItem);
+
+            MenuItem closeItem = new MenuItem("Close");
+            closeItem.addActionListener(e -> System.exit(0));
+            popup.add(closeItem);
+            /// ... add other items
+            // construct a TrayIcon
+            trayIcon = new TrayIcon(image, "Title", popup);
+            // set the TrayIcon properties
+            trayIcon.addActionListener(showListener);
+            // ...
+            // add the tray image
+            try {
+                systemTray.add(trayIcon);
+            } catch (AWTException e) {
+                LOGGER.error("unable to add tray icon:", e);
+            }
+        } else {
+            LOGGER.warn("system tray not supported!!");
+        }
+    }
+
+    private void showProgramIsMinimizedMsg() {
+        if (firstTime) {
+            trayIcon.displayMessage("Some message.",
+                                    "Some other message.",
+                                    TrayIcon.MessageType.INFO);
+            firstTime = false;
+        }
+    }
+
+    /**
+     * hides main stage or closes app if system tray is not supported
+     */
+    private void hide() {
+        Platform.runLater(() -> {
+            if (SystemTray.isSupported()) {
+                mainStage.hide();
+                showProgramIsMinimizedMsg();
+            } else {
+                System.exit(0);
+            }
+        });
+    }
+
+    /**
+     * sends app to tray if tray is supported
+     */
+    public void sendToTray() {
+        if (SystemTray.isSupported()) {
+            LOGGER.debug("System tray supported - hiding main stage of app");
+            hide();
+        } else {
+            LOGGER.debug("System tray not supported, ignoring sendToTray call");
+        }
     }
 
     /**

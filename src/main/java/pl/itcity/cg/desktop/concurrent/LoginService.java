@@ -38,8 +38,8 @@ public class LoginService extends BaseRestService<LoginResult> {
             @Override
             protected LoginResult call() throws Exception {
                 LOGGER.info("about to login principal: "+taskPrincipal);
-                HttpEntity<Principal> requestEntity = new HttpEntity<>(taskPrincipal, getAuthHeaders());
-                ResponseEntity<JsonResponse> exchange = restTemplate.exchange(baseUrl + LOGIN_URL, HttpMethod.POST, requestEntity, JsonResponse.class);
+                HttpEntity<Principal> requestEntity = new HttpEntity<>(taskPrincipal, serviceInvoker.getAuthHeaders());
+                ResponseEntity<JsonResponse> exchange = serviceInvoker.exchange(LOGIN_URL, HttpMethod.POST, requestEntity, JsonResponse.class);
                 LoginResult loginResult = new LoginResult(exchange.getBody());
                 if (loginResult.getJsonResponse().isSuccess()){
                     HttpHeaders headers = exchange.getHeaders();

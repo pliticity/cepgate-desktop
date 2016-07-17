@@ -1,6 +1,7 @@
 package pl.itcity.cg.desktop.controller;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
@@ -20,6 +21,7 @@ import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextField;
 import javafx.stage.DirectoryChooser;
 import pl.itcity.cg.desktop.CgApplication;
+import pl.itcity.cg.desktop.backend.files.DocumentSynchronizer;
 import pl.itcity.cg.desktop.concurrent.DocumentListService;
 import pl.itcity.cg.desktop.concurrent.DocumentSynchronizingService;
 import pl.itcity.cg.desktop.concurrent.GetConfigurationService;
@@ -64,6 +66,9 @@ public class ConfigController extends BaseController implements ParentNodeAware{
 
     @Resource
     private GetConfigurationService getConfigurationService;
+
+    @Resource
+    private DocumentSynchronizer documentSynchronizer;
 
     private final DirectoryChooser directoryChooser = initDirectoryChooser();
 
@@ -176,12 +181,12 @@ public class ConfigController extends BaseController implements ParentNodeAware{
                 if (documentSynchronizingService.isRunning()){
                     LOGGER.warn("DocumentSynchronizingService already running");
                 } else {
-                    documentSynchronizingService.setOnFailed(event1 -> {
-                        Throwable exception = documentSynchronizingService.getException();
-                        LOGGER.error("exception while synchronizing documents:", exception);
-                        errorLabel.setText(getMessage("document.synchronization.error",new Object[]{exception.getMessage()}));
+                    documentSynchronizingService.setOnFailed(event1 -> handleSynchronizationFalied());
+                    documentSynchronizingService.setOnSucceeded(event1 -> {
+                        errorLabel.setText(getMessage("document.synchronization.success"));
+                        registerWatchers();
+                        CgApplication.getInstance().sendToTray();
                     });
-                    documentSynchronizingService.setOnSucceeded(event1 -> errorLabel.setText(getMessage("document.synchronization.success")));
                     documentSynchronizingService.setDocuments(value);
                     documentSynchronizingService.restart();
                     synchronizationProgressBar.setVisible(true);
@@ -189,6 +194,30 @@ public class ConfigController extends BaseController implements ParentNodeAware{
             });
             documentListService.restart();
         }
+    }
+
+    /**
+     * registers document change watchers
+     *
+     * consider replacing direct synchronizer call with service
+     */
+    private void registerWatchers() {
+        try {
+            documentSynchronizer.registerDocumentChangeWatchers();
+            LOGGER.debug("watchers registered");
+        } catch (IOException e) {
+            LOGGER.error("exception while registering watchers", e);
+            errorLabel.setText(getMessage("document.synchronization.watchers.error", new Object[]{e.getMessage()}));
+        }
+    }
+
+    /**
+     * handles document synchronization service failure
+     */
+    private void handleSynchronizationFalied() {
+        Throwable exception = documentSynchronizingService.getException();
+        LOGGER.error("exception while synchronizing documents:", exception);
+        errorLabel.setText(getMessage("document.synchronization.error", new Object[]{exception.getMessage()}));
     }
 
     /**

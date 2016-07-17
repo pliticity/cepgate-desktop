@@ -3,7 +3,7 @@ package pl.itcity.cg.desktop.model;
 /**
  * Bean containing file info and corresponding document info
  *
- * @author Michal Adamczyk, HYCOM S.A.
+ * @author Michal Adamczyk
  */
 public class SingleFileDocumentInfo {
     private final DocumentInfo documentInfo;

@@ -5,6 +5,7 @@ import java.net.URL;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.concurrent.Executors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +15,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.context.event.ApplicationEventMulticaster;
+import org.springframework.context.event.SimpleApplicationEventMulticaster;
 import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.core.env.Environment;
 import org.springframework.http.client.BufferingClientHttpRequestFactory;
@@ -21,6 +24,7 @@ import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.http.converter.ByteArrayHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.client.RestTemplate;
 
 import javafx.fxml.FXMLLoader;
@@ -93,5 +97,14 @@ public class AppBeanFactory {
     @Bean
     public String baseUrl(){
         return environment.getProperty("cepgate.service.baseUrl");
+    }
+
+    @Bean
+    public ApplicationEventMulticaster applicationEventMulticaster() {
+        SimpleApplicationEventMulticaster simpleApplicationEventMulticaster = new SimpleApplicationEventMulticaster();
+        ThreadPoolTaskExecutor taskExecutor = new ThreadPoolTaskExecutor();
+        String poolSize = environment.getProperty("cepgate.executor.threadpool");
+        simpleApplicationEventMulticaster.setTaskExecutor(Executors.newFixedThreadPool(Integer.valueOf(poolSize)));
+        return simpleApplicationEventMulticaster;
     }
 }

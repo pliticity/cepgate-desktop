@@ -11,11 +11,15 @@ public class FileMeta {
 
     private String fileinfoId;
 
+    private String documentInfoId;
+
     private String fileName;
 
     private Date modifiedDate;
 
     private Date createdDate;
+
+    private String symbol;
 
     public Checksum getChecksum() {
         return checksum;
@@ -55,5 +59,21 @@ public class FileMeta {
 
     public void setCreatedDate(Date createdDate) {
         this.createdDate = createdDate;
+    }
+
+    public String getDocumentInfoId() {
+        return documentInfoId;
+    }
+
+    public void setDocumentInfoId(String documentInfoId) {
+        this.documentInfoId = documentInfoId;
+    }
+
+    public String getSymbol() {
+        return symbol;
+    }
+
+    public void setSymbol(String symbol) {
+        this.symbol = symbol;
     }
 }
