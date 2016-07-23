@@ -2,6 +2,8 @@ package pl.itcity.cg.desktop.backend.files;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.nio.file.FileVisitResult;
 import java.nio.file.FileVisitor;
 import java.nio.file.Files;
@@ -54,7 +56,14 @@ public class SynchronizingTempResourceFileVisitor implements FileVisitor<Path>{
         DocumentInfo documentInfo = singleFileDocumentInfo.getDocumentInfo();
         String clasificationName = documentInfo.getClassification()
                 .getName();
-        this.destinationDirectory = Paths.get(this.syncDirectory, clasificationName, documentInfo.getDocumentNumber(), documentInfo.getDocumentName());
+        String encode;
+        try {
+            encode = URLEncoder.encode(documentInfo.getDocumentName(), "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            LOGGER.error("exception while encoding:", e);
+            encode = documentInfo.getDocumentName();
+        }
+        this.destinationDirectory = Paths.get(this.syncDirectory, clasificationName, documentInfo.getDocumentNumber(), encode);
     }
 
     @Override
