@@ -101,7 +101,10 @@ public class SynchronizingTempResourceFileVisitor implements FileVisitor<Path>{
      */
     private void visitFileWithMeta(Path file, Path fileName, Path destinationFilePath, FileMeta fileMeta, int attemptNumber) throws
                                                                                                                              IOException {
-        File metaFile = destinationDirectory.resolve(fileName + FileConstants.META)
+
+        Path parent = fileName.getParent();
+        String parentDir = parent != null ? parent.toString() : StringUtils.EMPTY;
+        File metaFile = destinationDirectory.resolve(parentDir + FileConstants.DOT + fileName.getFileName() + FileConstants.META)
                 .toFile();
         if (!metaFile.exists()) {
             LOGGER.info("moving file " + fileName + " to destination directory " + destinationDirectory);
@@ -220,7 +223,9 @@ public class SynchronizingTempResourceFileVisitor implements FileVisitor<Path>{
         LOGGER.info("about to create backup file");
         String backupFilePath = existingFilePath.toString() + FileConstants.BAK;
         existingFileMeta.setFileName(backupFilePath);
-        File destinationMetaFile = Paths.get(backupFilePath + FileConstants.META)
+        Path existingFileName = existingFilePath.getFileName();
+        File destinationMetaFile = Paths.get(existingFileName.getParent()
+                                                     .toString() + FileConstants.DOT + existingFileName + FileConstants.BAK + FileConstants.META)
                 .toFile();
         if (!destinationMetaFile.exists()) {
             destinationMetaFile.createNewFile();

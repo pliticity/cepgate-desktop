@@ -14,6 +14,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
+import pl.itcity.cg.desktop.backend.files.FileConstants;
+
 /**
  * Filesystem events factory accepting paths corresponding to documents from current working directory.
  *
@@ -69,8 +71,9 @@ public class DocumentFilesystemEventsFactory implements FilesystemEventFactory {
      * @return true iff meta exists for given path
      */
     private boolean metaExists(Path path) {
-        Path metaPath = Paths.get(path.toAbsolutePath()
-                                       .toString() + META);
+        Path absolutePath = path.toAbsolutePath();
+        Path metaPath = absolutePath.getParent()
+                .resolve(FileConstants.DOT + absolutePath.getFileName() + META);
         LOGGER.debug("metaPath = "+metaPath);
         return metaPath
                 .toFile()

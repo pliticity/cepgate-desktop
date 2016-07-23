@@ -56,8 +56,9 @@ public class DocumentModifiedListener implements ApplicationListener<FileModifie
     public void onApplicationEvent(FileModifiedEvent event) {
         Path path = event.getPath();
         LOGGER.info("path modified: " + path);
-        Path metaPath = Paths.get(path.toAbsolutePath()
-                                       .toString() + FileConstants.META);
+        Path fileName = path.getFileName();
+        Path metaPath = path.getParent()
+                .resolve(FileConstants.DOT + fileName.toString() + FileConstants.META);
         File metaFile = metaPath.toFile();
         if (metaFile.exists()) {
             ObjectMapper objectMapper = new ObjectMapper();
@@ -88,6 +89,8 @@ public class DocumentModifiedListener implements ApplicationListener<FileModifie
                 LOGGER.error("error while processing file change:", e);
                 applicationEventPublisher.publishEvent(new FileSynchronizationSystemMessage(this, EventResultType.ERROR, path));
             }
+        } else {
+            LOGGER.warn("file modified but no meta exists: " + metaPath);
         }
     }
 

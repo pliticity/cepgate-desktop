@@ -13,9 +13,14 @@ public class FileConstants {
     public static final String META_EXTENSTION = "meta";
 
     /**
+     * dot filename separator
+     */
+    public static final String DOT = ".";
+
+    /**
      * meta file name part
      */
-    public static final String META = "." + META_EXTENSTION;
+    public static final String META = DOT + META_EXTENSTION;
     /**
      * backup file extenstion
      */
