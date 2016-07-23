@@ -28,6 +28,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.client.RestTemplate;
 
 import javafx.fxml.FXMLLoader;
+import pl.itcity.cg.desktop.controller.ActionConfirmController;
 import pl.itcity.cg.desktop.controller.ConfigController;
 import pl.itcity.cg.desktop.controller.DocumentListController;
 import pl.itcity.cg.desktop.controller.LoginController;
@@ -66,6 +67,11 @@ public class AppBeanFactory {
         return (ConfigController) loadController("/fxml/config.fxml");
     }
 
+    @Bean
+    public ActionConfirmController actionConfirmController() throws IOException {
+        return (ActionConfirmController) loadController("/fxml/actionConfirmView.fxml");
+    }
+
     private Object loadController(String url) throws IOException {
         URL resource = getClass().getResource(url);
         LOGGER.info("resource: ",resource);
@@ -102,7 +108,6 @@ public class AppBeanFactory {
     @Bean
     public ApplicationEventMulticaster applicationEventMulticaster() {
         SimpleApplicationEventMulticaster simpleApplicationEventMulticaster = new SimpleApplicationEventMulticaster();
-        ThreadPoolTaskExecutor taskExecutor = new ThreadPoolTaskExecutor();
         String poolSize = environment.getProperty("cepgate.executor.threadpool");
         simpleApplicationEventMulticaster.setTaskExecutor(Executors.newFixedThreadPool(Integer.valueOf(poolSize)));
         return simpleApplicationEventMulticaster;

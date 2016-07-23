@@ -204,7 +204,7 @@ public class ConfigController extends BaseController implements ParentNodeAware{
     private void registerWatchers() {
         try {
             documentSynchronizer.registerDocumentChangeWatchers();
-            LOGGER.debug("watchers registered");
+            LOGGER.info("watchers registered");
         } catch (IOException e) {
             LOGGER.error("exception while registering watchers", e);
             errorLabel.setText(getMessage("document.synchronization.watchers.error", new Object[]{e.getMessage()}));

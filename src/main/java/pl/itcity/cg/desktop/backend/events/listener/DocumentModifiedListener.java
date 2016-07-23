@@ -11,11 +11,13 @@ import javax.annotation.Resource;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationListener;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -30,6 +32,8 @@ import pl.itcity.cg.desktop.backend.files.events.FileModifiedEvent;
 import pl.itcity.cg.desktop.backend.files.model.Checksum;
 import pl.itcity.cg.desktop.backend.files.model.FileMeta;
 import pl.itcity.cg.desktop.backend.service.ServiceInvoker;
+import pl.itcity.cg.desktop.event.EventResultType;
+import pl.itcity.cg.desktop.event.FileSynchronizationSystemMessage;
 import pl.itcity.cg.desktop.model.FileInfo;
 
 /**
@@ -44,6 +48,9 @@ public class DocumentModifiedListener implements ApplicationListener<FileModifie
 
     @Resource
     private ServiceInvoker serviceInvoker;
+
+    @Resource
+    private ApplicationEventPublisher applicationEventPublisher;
 
     @Override
     public void onApplicationEvent(FileModifiedEvent event) {
@@ -64,13 +71,22 @@ public class DocumentModifiedListener implements ApplicationListener<FileModifie
                 LOGGER.info("checksum recalculted for path: " + path);
 
                 ResponseEntity<FileInfo> updatedFileInfo = reuploadFile(path, fileMeta);
-                FileInfo body = updatedFileInfo.getBody();
-                LOGGER.info("fileInfo updated: " + body);
-                fileMeta.setFileinfoId(body.getId());
-                fileMeta.setSymbol(body.getSymbol());
-                objectMapper.writeValue(metaFile, fileMeta);
+                EventResultType resultType;
+                if (HttpStatus.OK.equals(updatedFileInfo.getStatusCode())) {
+                    FileInfo body = updatedFileInfo.getBody();
+                    LOGGER.info("fileInfo updated: " + body);
+                    fileMeta.setFileinfoId(body.getId());
+                    fileMeta.setSymbol(body.getSymbol());
+                    objectMapper.writeValue(metaFile, fileMeta);
+                    resultType = EventResultType.INFO;
+                } else {
+                    LOGGER.warn("unable to synchronize file: "+path+" statusCode="+updatedFileInfo.getStatusCode());
+                    resultType = EventResultType.ERROR;
+                }
+                applicationEventPublisher.publishEvent(new FileSynchronizationSystemMessage(this, resultType, path));
             } catch (IOException e) {
                 LOGGER.error("error while processing file change:", e);
+                applicationEventPublisher.publishEvent(new FileSynchronizationSystemMessage(this, EventResultType.ERROR, path));
             }
         }
     }
