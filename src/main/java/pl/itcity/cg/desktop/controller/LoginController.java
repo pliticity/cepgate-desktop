@@ -18,6 +18,8 @@ import javafx.scene.control.TextField;
 import pl.itcity.cg.desktop.CgApplication;
 import pl.itcity.cg.desktop.concurrent.LoginService;
 import pl.itcity.cg.desktop.controller.common.ParentNodeAware;
+import pl.itcity.cg.desktop.integration.service.JMSService;
+import pl.itcity.cg.desktop.integration.service.TokenService;
 import pl.itcity.cg.desktop.model.LoginResult;
 import pl.itcity.cg.desktop.model.Principal;
 import pl.itcity.cg.desktop.model.SessionContext;
@@ -47,6 +49,12 @@ public class LoginController implements ParentNodeAware {
 
     @Resource
     private UserContext userContext;
+
+    @Resource
+    private TokenService tokenService;
+
+    @Resource
+    private JMSService jmsService;
 
     /**
      * performs login attempt
@@ -80,6 +88,11 @@ public class LoginController implements ParentNodeAware {
                         userContext.setAuthorized(true);
                         userContext.setContext(new SessionContext(principal.getEmail(), loginResult.getCookie()));
                         messageLabel.setText(messageSource.getMessage("login.succeeded",new Object[]{},Locale.getDefault()));
+                        String desktopToken = tokenService.generateToken(principal.getEmail());
+                        jmsService.initChannel(desktopToken);
+                        jmsService.connect(desktopToken);
+                        tokenService.registerToken(desktopToken);
+
                         CgApplication.getInstance().goToConfig();
                     } else {
                         messageLabel.setText(messageSource.getMessage("login.failure",new Object[]{loginResult.getJsonResponse().getMessage()},Locale.getDefault()));
