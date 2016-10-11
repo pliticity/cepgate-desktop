@@ -1,5 +1,7 @@
 package pl.itcity.cg.desktop.integration;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import javafx.stage.FileChooser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,15 +24,20 @@ import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
 import org.springframework.messaging.MessagingException;
 import pl.itcity.cg.desktop.CgApplication;
+import pl.itcity.cg.desktop.backend.files.runnables.FileWatcher;
 import pl.itcity.cg.desktop.concurrent.PullFileService;
 import pl.itcity.cg.desktop.integration.service.FileHelper;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.MessageFormat;
+import java.util.HashMap;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * A factory class for spring integration beans (RabbitMQ)
@@ -82,11 +89,23 @@ public class IntegrationBeanFactory {
         return new MessageHandler() {
             @Override
             public void handleMessage(Message<?> message) throws MessagingException {
-                String payload = new String((byte[]) message.getPayload());
+                String value = new String((byte[]) message.getPayload());
+                ObjectMapper mapper = new ObjectMapper();
+                TypeReference<HashMap<String,Object>> typeRef
+                        = new TypeReference<HashMap<String,Object>>() {};
+
+                HashMap<String,String> o = null;
+                try {
+                    o = mapper.readValue(value, typeRef);
+                } catch (IOException e) {
+                    LOGGER.error(e.getMessage(),e);
+                    return;
+                }
                 PullFileService pullFileService = applicationContext.getBean(PullFileService.class);
-                pullFileService.setFileSymbol(payload);
+                pullFileService.setFileSymbol(o.get("symbol"));
+                final HashMap<String, String> finalO = o;
                 pullFileService.setOnFailed(event -> {
-                    LOGGER.error(MessageFormat.format("Could not pull file with symbol {0}", payload), pullFileService.getException());
+                    LOGGER.error(MessageFormat.format("Could not pull file with symbol {0}", finalO.get("symbol")), pullFileService.getException());
                 });
                 pullFileService.setOnSucceeded(event -> {
                     byte[] fileBytes = pullFileService.getValue().getBody();
@@ -94,16 +113,20 @@ public class IntegrationBeanFactory {
                     File file = fileChooser.showSaveDialog(CgApplication.getInstance()
                             .getMainStage());
                     Optional.ofNullable(file).ifPresent(result -> {
-                        String path = result.getPath();
-
+                        String pathString = result.getPath();
                         try {
-                            Files.write(Paths.get(path),fileBytes);
+                            Path path = Paths.get(pathString);
+                            Files.write(path,fileBytes);
+                            ExecutorService executorService = Executors.newSingleThreadExecutor();
+                            Path dir = Paths.get(path.toString().replace(path.getFileName().toString(),""));
+                            FileWatcher watcher = applicationContext.getBean(FileWatcher.class,path.getFileName().toString(),dir,finalO.get("dicId"));
+                            executorService.execute(watcher);
                         } catch (IOException e) {
                             LOGGER.error(e.getMessage(),e);
                             return;
                         }
                     });
-                    LOGGER.info(MessageFormat.format("Pulled file with symbol {0}",payload));
+                    LOGGER.info(MessageFormat.format("Pulled file with symbol {0}",finalO.get("symbol")));
                 });
                 pullFileService.start();
             }
