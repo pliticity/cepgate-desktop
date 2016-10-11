@@ -2,7 +2,8 @@ package pl.itcity.cg.desktop.integration.service.impl;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
 import pl.itcity.cg.desktop.integration.service.TokenService;
 
 import java.text.MessageFormat;
@@ -13,7 +14,8 @@ import java.util.Date;
  *
  * @author Patryk Majchrzycki
  */
-@Service
+@Component
+@Scope("prototype")
 public class DesktopTokenService implements TokenService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DesktopTokenService.class);
@@ -22,7 +24,7 @@ public class DesktopTokenService implements TokenService {
 
     @Override
     public String generateToken(String username) {
-        return MessageFormat.format(TOKEN_PATTERN, username,String.valueOf(new Date().getTime()));
+        return MessageFormat.format(TOKEN_PATTERN, username, String.valueOf(new Date().getTime()));
     }
 
     @Override

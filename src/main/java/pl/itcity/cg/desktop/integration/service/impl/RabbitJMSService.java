@@ -9,9 +9,11 @@ import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Scope;
 import org.springframework.integration.amqp.inbound.AmqpInboundChannelAdapter;
 import org.springframework.messaging.MessageChannel;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import pl.itcity.cg.desktop.integration.service.JMSService;
 
 import java.text.MessageFormat;
@@ -21,7 +23,8 @@ import java.text.MessageFormat;
  *
  * @author Patryk Majchrzycki
  */
-@Service
+@Component
+@Scope("prototype")
 public class RabbitJMSService implements JMSService {
 
     private static final String QUEUE_PATTERN = "pl.iticity.{0}.queue";
@@ -84,6 +87,8 @@ public class RabbitJMSService implements JMSService {
     private AmqpInboundChannelAdapter initAdapter(SimpleMessageListenerContainer listenerContainer, MessageChannel channel) {
         AmqpInboundChannelAdapter adapter = new AmqpInboundChannelAdapter(listenerContainer);
         adapter.setOutputChannel(channel);
+        adapter.afterPropertiesSet();
+        adapter.start();
         return adapter;
     }
 
