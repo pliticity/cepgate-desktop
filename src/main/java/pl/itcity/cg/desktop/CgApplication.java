@@ -28,6 +28,7 @@ import pl.itcity.cg.desktop.controller.ConfigController;
 import pl.itcity.cg.desktop.controller.DocumentListController;
 import pl.itcity.cg.desktop.controller.LoginController;
 import pl.itcity.cg.desktop.controller.common.ParentNodeAware;
+import pl.itcity.cg.desktop.integration.service.TokenService;
 
 public class CgApplication extends Application {
 
@@ -111,6 +112,8 @@ public class CgApplication extends Application {
     }
 
     private void doCloseApp() {
+        TokenService tokenService = context.getBean(TokenService.class);
+        tokenService.registerToken(null);
         context.close();
         System.exit(0);
     }

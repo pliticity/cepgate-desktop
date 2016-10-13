@@ -33,28 +33,26 @@ public class FileWatcher implements Runnable {
 
     private String dicId;
 
-    public FileWatcher(String fileName, Path path,String dicId) {
+    private String fileId;
+
+    public FileWatcher(String fileName, Path path, String dicId, String fileId) {
         this.fileName = fileName;
         this.path = path;
         this.dicId = dicId;
+        this.fileId = fileId;
     }
 
     @Override
     public void run() {
         try (WatchService watchService = FileSystems.getDefault()
                 .newWatchService()) {
-            path.register(watchService, ENTRY_MODIFY, ENTRY_DELETE);
+            path.register(watchService, ENTRY_MODIFY);
             while (true) {
                 WatchKey watchKey = watchService.take();
                 for (WatchEvent<?> event : watchKey.pollEvents()) {
-                    if (ENTRY_DELETE.equals(event.kind())) {LOGGER.info(MessageFormat.format("File {0} was deleted", path.toString()));
-                        Thread.currentThread().interrupt();
-                    } else {
-                        Path modified = (Path) event.context();
-                        if (modified.endsWith(this.fileName)) {
-                            LOGGER.info(MessageFormat.format("File {0} was modified", path.toString()));
-                            applicationEventPublisher.publishEvent(new PulledFileModifiedEvent(event,modified,this.dicId));
-                        }
+                    Path modified = (Path) event.context();
+                    if (modified.endsWith(this.fileName)) {
+                        applicationEventPublisher.publishEvent(new PulledFileModifiedEvent(event, Paths.get(path.toString(),fileName), this.dicId,this.fileId));
                     }
                 }
                 watchKey.reset();

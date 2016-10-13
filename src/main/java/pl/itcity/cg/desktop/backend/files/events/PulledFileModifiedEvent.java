@@ -11,12 +11,19 @@ public class PulledFileModifiedEvent extends FilesystemEvent {
 
     private String dicId;
 
-    public PulledFileModifiedEvent(Object source, Path path, String dicId) {
+    private String fileId;
+
+    public PulledFileModifiedEvent(Object source, Path path, String dicId, String fileId) {
         super(source, path, StandardWatchEventKinds.ENTRY_MODIFY);
         this.dicId = dicId;
+        this.fileId=fileId;
     }
 
     public String getDicId() {
         return dicId;
+    }
+
+    public String getFileId() {
+        return fileId;
     }
 }

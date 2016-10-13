@@ -89,23 +89,23 @@ public class IntegrationBeanFactory {
         return new MessageHandler() {
             @Override
             public void handleMessage(Message<?> message) throws MessagingException {
-                String value = new String((byte[]) message.getPayload());
+                String value = (String) message.getPayload();
                 ObjectMapper mapper = new ObjectMapper();
                 TypeReference<HashMap<String,Object>> typeRef
                         = new TypeReference<HashMap<String,Object>>() {};
 
-                HashMap<String,String> o = null;
+                PullFileDTO pullFileDTO = null;
                 try {
-                    o = mapper.readValue(value, typeRef);
+                    pullFileDTO = mapper.readValue(value, PullFileDTO.class);
                 } catch (IOException e) {
                     LOGGER.error(e.getMessage(),e);
                     return;
                 }
                 PullFileService pullFileService = applicationContext.getBean(PullFileService.class);
-                pullFileService.setFileSymbol(o.get("symbol"));
-                final HashMap<String, String> finalO = o;
+                pullFileService.setFileSymbol(pullFileDTO.getSymbol());
+                PullFileDTO finalO = pullFileDTO;
                 pullFileService.setOnFailed(event -> {
-                    LOGGER.error(MessageFormat.format("Could not pull file with symbol {0}", finalO.get("symbol")), pullFileService.getException());
+                    LOGGER.error(MessageFormat.format("Could not pull file with symbol {0}", finalO.getSymbol()), pullFileService.getException());
                 });
                 pullFileService.setOnSucceeded(event -> {
                     byte[] fileBytes = pullFileService.getValue().getBody();
@@ -119,14 +119,14 @@ public class IntegrationBeanFactory {
                             Files.write(path,fileBytes);
                             ExecutorService executorService = Executors.newSingleThreadExecutor();
                             Path dir = Paths.get(path.toString().replace(path.getFileName().toString(),""));
-                            FileWatcher watcher = applicationContext.getBean(FileWatcher.class,path.getFileName().toString(),dir,finalO.get("dicId"));
+                            FileWatcher watcher = applicationContext.getBean(FileWatcher.class,path.getFileName().toString(),dir,finalO.getDicId(),finalO.getFileId());
                             executorService.execute(watcher);
                         } catch (IOException e) {
                             LOGGER.error(e.getMessage(),e);
                             return;
                         }
                     });
-                    LOGGER.info(MessageFormat.format("Pulled file with symbol {0}",finalO.get("symbol")));
+                    LOGGER.info(MessageFormat.format("Pulled file with symbol {0}",finalO.getSymbol()));
                 });
                 pullFileService.start();
             }
