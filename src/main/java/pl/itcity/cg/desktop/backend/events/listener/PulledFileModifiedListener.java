@@ -1,6 +1,8 @@
 package pl.itcity.cg.desktop.backend.events.listener;
 
-import org.apache.commons.lang.StringUtils;
+import javafx.application.Platform;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,13 +12,15 @@ import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import pl.itcity.cg.desktop.CgApplication;
 import pl.itcity.cg.desktop.backend.files.events.PulledFileModifiedEvent;
-import pl.itcity.cg.desktop.concurrent.PullFileService;
 import pl.itcity.cg.desktop.concurrent.PushFileService;
 import pl.itcity.cg.desktop.model.FileInfo;
 
+import java.util.Locale;
 import java.util.Optional;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
 
 /**
  * @author Patryk Majchrzycki
@@ -26,19 +30,50 @@ public class PulledFileModifiedListener implements ApplicationListener<PulledFil
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PulledFileModifiedListener.class);
 
+    private static final String TITLE_BUNDLE = "pulled.file.upload.title";
+    private static final String CONTENT_BUNDLE = "pulled.file.upload.content";
+
     @Autowired
     private ApplicationContext applicationContext;
 
+    @Autowired
+    private MessageSource messageSource;
+
     @Override
     public void onApplicationEvent(PulledFileModifiedEvent event) {
-        PushFileService pushFileService = applicationContext.getBean(PushFileService.class,event.getPath(),event.getFileId(),event.getDicId());
-        pushFileService.setOnSucceeded(e -> {
-            ResponseEntity<FileInfo> response = pushFileService.getValue();
-            if(HttpStatus.OK.equals(response.getStatusCode())){
-                event.getPath().toFile().delete();
+        FutureTask<Void> futureTask = new FutureTask<Void>(new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                alert.setTitle(resolveMessage(TITLE_BUNDLE));
+                alert.setHeaderText(resolveMessage(CONTENT_BUNDLE,event.getPath().getFileName().toString()));
+                Optional<ButtonType> option = alert.showAndWait();
+                if (ButtonType.OK.equals(option.get())) {
+                    PushFileService pushFileService = applicationContext.getBean(PushFileService.class, event.getPath(), event.getFileId(), event.getDicId());
+                    pushFileService.setOnSucceeded(e -> {
+                        ResponseEntity<FileInfo> response = pushFileService.getValue();
+                        if (HttpStatus.OK.equals(response.getStatusCode())) {
+                            event.getPath().toFile().delete();
+                        }
+                    });
+                    pushFileService.start();
+                }
+                return null;
             }
         });
-        pushFileService.start();
+        Platform.runLater(futureTask);
+        try {
+            futureTask.get();
+        } catch (InterruptedException e) {
+            LOGGER.error(e.getMessage(), e);
+        } catch (ExecutionException e) {
+            LOGGER.error(e.getMessage(), e);
+        }
+    }
+
+    private String resolveMessage(String key, Object... args){
+        args = Optional.ofNullable(args).orElse(new Object[]{});
+        return messageSource.getMessage(key,args,key, Locale.getDefault());
     }
 
 }
