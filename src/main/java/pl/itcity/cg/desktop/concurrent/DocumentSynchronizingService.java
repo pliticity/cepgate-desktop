@@ -181,7 +181,7 @@ public class DocumentSynchronizingService extends BaseRestService<Void>{
                                 LOGGER.debug("filename header obtained: " + filenameHeader);
                                 String[] splittedFilenameheader = filenameHeaderValue.split("=");
                                 if (splittedFilenameheader.length == 2) {
-                                    return splittedFilenameheader[1];
+                                    return splittedFilenameheader[1].replace("\"", "");
                                 } else {
                                     LOGGER.warn("no filenme found in response header, returning name from fileInfo");
                                     return singleFileDocInfo.getFileInfo()
