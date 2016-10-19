@@ -39,35 +39,41 @@ public class PulledFileModifiedListener implements ApplicationListener<PulledFil
     @Autowired
     private MessageSource messageSource;
 
+    private boolean showing;
+
     @Override
     public void onApplicationEvent(PulledFileModifiedEvent event) {
-        FutureTask<Void> futureTask = new FutureTask<Void>(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-                alert.setTitle(resolveMessage(TITLE_BUNDLE));
-                alert.setHeaderText(resolveMessage(CONTENT_BUNDLE,event.getPath().getFileName().toString()));
-                Optional<ButtonType> option = alert.showAndWait();
-                if (ButtonType.OK.equals(option.get())) {
-                    PushFileService pushFileService = applicationContext.getBean(PushFileService.class, event.getPath(), event.getFileId(), event.getDicId());
-                    pushFileService.setOnSucceeded(e -> {
-                        ResponseEntity<FileInfo> response = pushFileService.getValue();
-                        if (HttpStatus.OK.equals(response.getStatusCode())) {
-                            event.getPath().toFile().delete();
-                        }
-                    });
-                    pushFileService.start();
+        if (!showing) {
+            showing = true;
+            FutureTask<Void> futureTask = new FutureTask<Void>(new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                    alert.setTitle(resolveMessage(TITLE_BUNDLE));
+                    alert.setHeaderText(resolveMessage(CONTENT_BUNDLE, event.getPath().getFileName().toString()));
+                    Optional<ButtonType> option = alert.showAndWait();
+                    if (ButtonType.OK.equals(option.get())) {
+                        PushFileService pushFileService = applicationContext.getBean(PushFileService.class, event.getPath(), event.getFileId(), event.getDicId());
+                        pushFileService.setOnSucceeded(e -> {
+                            ResponseEntity<FileInfo> response = pushFileService.getValue();
+                            if (HttpStatus.OK.equals(response.getStatusCode())) {
+                                event.getPath().toFile().delete();
+                            }
+                        });
+                        pushFileService.start();
+                    }
+                    showing=false;
+                    return null;
                 }
-                return null;
+            });
+            Platform.runLater(futureTask);
+            try {
+                futureTask.get();
+            } catch (InterruptedException e) {
+                LOGGER.error(e.getMessage(), e);
+            } catch (ExecutionException e) {
+                LOGGER.error(e.getMessage(), e);
             }
-        });
-        Platform.runLater(futureTask);
-        try {
-            futureTask.get();
-        } catch (InterruptedException e) {
-            LOGGER.error(e.getMessage(), e);
-        } catch (ExecutionException e) {
-            LOGGER.error(e.getMessage(), e);
         }
     }
 

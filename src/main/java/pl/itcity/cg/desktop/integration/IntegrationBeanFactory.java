@@ -2,7 +2,6 @@ package pl.itcity.cg.desktop.integration;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import javafx.stage.FileChooser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
@@ -23,11 +22,13 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
 import org.springframework.messaging.MessagingException;
-import pl.itcity.cg.desktop.CgApplication;
 import pl.itcity.cg.desktop.backend.files.runnables.FileWatcher;
+import pl.itcity.cg.desktop.concurrent.OpenFileService;
 import pl.itcity.cg.desktop.concurrent.PullFileService;
-import pl.itcity.cg.desktop.integration.service.FileHelper;
+import pl.itcity.cg.desktop.configuration.ConfigManager;
+import pl.itcity.cg.desktop.integration.service.AlertHelper;
 
+import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -57,6 +58,9 @@ public class IntegrationBeanFactory {
 
     @Autowired
     private ApplicationContext applicationContext;
+
+    @Autowired
+    private ConfigManager configManager;
 
     @Bean
     public ConnectionFactory connectionFactory() throws Exception {
@@ -109,18 +113,20 @@ public class IntegrationBeanFactory {
                 });
                 pullFileService.setOnSucceeded(event -> {
                     byte[] fileBytes = pullFileService.getValue().getBody();
-                    FileChooser fileChooser = FileHelper.initFileChooser(FileHelper.getFileName(pullFileService.getValue()));
-                    File file = fileChooser.showSaveDialog(CgApplication.getInstance()
-                            .getMainStage());
+                    String syncDir = configManager.getAppConfig().getSyncDirectory();
+                    File file = Paths.get(MessageFormat.format("{0}/checkIn/{1}",syncDir,AlertHelper.getFileName(pullFileService.getValue()))).toFile();
                     Optional.ofNullable(file).ifPresent(result -> {
                         String pathString = result.getPath();
+                        Path path = Paths.get(pathString);
                         try {
-                            Path path = Paths.get(pathString);
                             Files.write(path,fileBytes);
                             ExecutorService executorService = Executors.newSingleThreadExecutor();
                             Path dir = Paths.get(path.toString().replace(path.getFileName().toString(),""));
                             FileWatcher watcher = applicationContext.getBean(FileWatcher.class,path.getFileName().toString(),dir,finalO.getDicId(),finalO.getFileId());
                             executorService.execute(watcher);
+
+                            OpenFileService openFileService = new OpenFileService(path.toFile());
+                            openFileService.restart();
                         } catch (IOException e) {
                             LOGGER.error(e.getMessage(),e);
                             return;

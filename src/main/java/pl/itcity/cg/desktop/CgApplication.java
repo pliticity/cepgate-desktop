@@ -3,7 +3,12 @@ package pl.itcity.cg.desktop;
 import java.awt.*;
 import java.awt.event.ActionListener;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.text.MessageFormat;
 import java.util.Locale;
+import java.util.Optional;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -23,6 +28,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import pl.itcity.cg.desktop.configuration.ConfigManager;
 import pl.itcity.cg.desktop.controller.ActionConfirmController;
 import pl.itcity.cg.desktop.controller.ConfigController;
 import pl.itcity.cg.desktop.controller.DocumentListController;
@@ -114,6 +120,14 @@ public class CgApplication extends Application {
     private void doCloseApp() {
         TokenService tokenService = context.getBean(TokenService.class);
         tokenService.registerToken(null);
+        ConfigManager manager = context.getBean(ConfigManager.class);
+        Optional.ofNullable(manager.getAppConfig()).map(appConfig -> appConfig.getSyncDirectory()).ifPresent(c->{
+            String pathString = MessageFormat.format("{0}/checkIn",c);
+            Path path = Paths.get(pathString);
+            if(Files.exists(path)){
+                path.toFile().delete();
+            }
+        });
         context.close();
         System.exit(0);
     }

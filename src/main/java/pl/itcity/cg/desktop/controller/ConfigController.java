@@ -2,6 +2,8 @@ package pl.itcity.cg.desktop.controller;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
@@ -28,7 +30,10 @@ import pl.itcity.cg.desktop.concurrent.GetConfigurationService;
 import pl.itcity.cg.desktop.concurrent.StoreConfigurationService;
 import pl.itcity.cg.desktop.configuration.model.AppConfig;
 import pl.itcity.cg.desktop.controller.common.ParentNodeAware;
+import pl.itcity.cg.desktop.integration.service.JMSService;
+import pl.itcity.cg.desktop.integration.service.TokenService;
 import pl.itcity.cg.desktop.model.DocumentInfo;
+import pl.itcity.cg.desktop.user.UserContext;
 
 /**
  * @author Michal Adamczyk controller for configuration screen
@@ -77,6 +82,15 @@ public class ConfigController extends BaseController implements ParentNodeAware{
         return configView;
     }
 
+    @Resource
+    private TokenService tokenService;
+
+    @Resource
+    private JMSService jmsService;
+
+    @Resource
+    private UserContext userContext;
+
     @PostConstruct
     private void init(){
         browseSyncDirButton.setOnAction(event -> {
@@ -99,6 +113,7 @@ public class ConfigController extends BaseController implements ParentNodeAware{
                     saveButton.setDisable(false);
                 } else {
                     configureAndRestartStoreService(syncDirectoryValue);
+                    initIntegration(syncDirectoryValue);
                 }
             } else {
                 LOGGER.debug("storeConfigurationService already running");
@@ -231,5 +246,17 @@ public class ConfigController extends BaseController implements ParentNodeAware{
         directoryChooser.setInitialDirectory(Paths.get(property)
                                                      .toFile());
         return directoryChooser;
+    }
+
+    private void initIntegration(String syncDirectoryValue){
+        Path checkInPath = Paths.get(syncDirectoryValue,"/checkIn");
+        if(Files.notExists(checkInPath)){
+            checkInPath.toFile().mkdirs();
+        }
+        String email = userContext.getContext().getUser();
+        String desktopToken = tokenService.generateToken(email);
+        jmsService.initChannel(desktopToken);
+        jmsService.connect(desktopToken);
+        tokenService.registerToken(desktopToken);
     }
 }

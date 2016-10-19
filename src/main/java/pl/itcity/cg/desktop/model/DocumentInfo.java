@@ -18,7 +18,7 @@ public class DocumentInfo {
     private String documentNumber;
     private String documentName;
     private DocumentType type;
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private Date creationDate;
     private Principal createdBy;
     private List<FileInfo> files;

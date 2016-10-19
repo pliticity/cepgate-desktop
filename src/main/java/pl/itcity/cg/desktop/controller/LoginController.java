@@ -50,12 +50,6 @@ public class LoginController implements ParentNodeAware {
     @Resource
     private UserContext userContext;
 
-    @Resource
-    private TokenService tokenService;
-
-    @Resource
-    private JMSService jmsService;
-
     /**
      * performs login attempt
      */
@@ -88,10 +82,6 @@ public class LoginController implements ParentNodeAware {
                         userContext.setAuthorized(true);
                         userContext.setContext(new SessionContext(principal.getEmail(), loginResult.getCookie()));
                         messageLabel.setText(messageSource.getMessage("login.succeeded",new Object[]{},Locale.getDefault()));
-                        String desktopToken = tokenService.generateToken(principal.getEmail());
-                        jmsService.initChannel(desktopToken);
-                        jmsService.connect(desktopToken);
-                        tokenService.registerToken(desktopToken);
 
                         CgApplication.getInstance().goToConfig();
                     } else {
