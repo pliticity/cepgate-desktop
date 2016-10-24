@@ -2,6 +2,7 @@ package pl.itcity.cg.desktop.backend.events.listener;
 
 import javafx.application.Platform;
 import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +33,8 @@ public class PulledFileModifiedListener implements ApplicationListener<PulledFil
 
     private static final String TITLE_BUNDLE = "pulled.file.upload.title";
     private static final String CONTENT_BUNDLE = "pulled.file.upload.content";
+    private static final String YES_BUNDLE = "pulled.file.upload.yes";
+    private static final String NO_BUNDLE = "pulled.file.upload.no";
 
     @Autowired
     private ApplicationContext applicationContext;
@@ -51,8 +54,12 @@ public class PulledFileModifiedListener implements ApplicationListener<PulledFil
                     Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
                     alert.setTitle(resolveMessage(TITLE_BUNDLE));
                     alert.setHeaderText(resolveMessage(CONTENT_BUNDLE, event.getPath().getFileName().toString()));
+                    alert.getButtonTypes().clear();
+                    ButtonType yes = new ButtonType(resolveMessage(YES_BUNDLE),ButtonBar.ButtonData.OK_DONE);
+                    ButtonType no = new ButtonType(resolveMessage(NO_BUNDLE), ButtonBar.ButtonData.CANCEL_CLOSE);
+                    alert.getButtonTypes().addAll(yes,no);
                     Optional<ButtonType> option = alert.showAndWait();
-                    if (ButtonType.OK.equals(option.get())) {
+                    if (ButtonBar.ButtonData.OK_DONE.equals(option.get().getButtonData())) {
                         PushFileService pushFileService = applicationContext.getBean(PushFileService.class, event.getPath(), event.getFileId(), event.getDicId());
                         pushFileService.setOnSucceeded(e -> {
                             ResponseEntity<FileInfo> response = pushFileService.getValue();
