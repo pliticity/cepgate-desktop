@@ -112,15 +112,16 @@ public class ConfigController extends BaseController implements ParentNodeAware{
                     errorLabel.setText(getMessage("config.error.emptySyncDir"));
                     saveButton.setDisable(false);
                 } else {
-                    configureAndRestartStoreService(syncDirectoryValue);
+                    //configureAndRestartStoreService(syncDirectoryValue);
                     initIntegration(syncDirectoryValue);
+                    CgApplication.getInstance().sendToTray();
                 }
             } else {
                 LOGGER.debug("storeConfigurationService already running");
             }
         });
-        synchronizationProgressBar.setVisible(false);
-        synchronizationProgressBar.progressProperty().bind(documentSynchronizingService.progressProperty());
+        //synchronizationProgressBar.setVisible(false);
+        //synchronizationProgressBar.progressProperty().bind(documentSynchronizingService.progressProperty());
     }
 
     /**

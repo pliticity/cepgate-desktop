@@ -24,14 +24,14 @@
             <Label fx:id="errorLabel" alignment="TOP_LEFT" />
          </children>
       </HBox>
-      <HBox alignment="CENTER">
+      <!--<HBox alignment="CENTER">
          <children>
             <ProgressBar fx:id="synchronizationProgressBar" prefHeight="20.0" prefWidth="565.0" progress="0.0" HBox.hgrow="ALWAYS" />
          </children>
          <VBox.margin>
             <Insets bottom="10.0" top="10.0" />
          </VBox.margin>
-      </HBox>
+      </HBox>-->
       <HBox alignment="CENTER_RIGHT">
          <children>
             <Button fx:id="saveButton" mnemonicParsing="false" text="%button.save" />
